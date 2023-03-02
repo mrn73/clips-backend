@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from apps.groups.models import Group, Membership
+from apps.groups.models import Group, Membership, Invitation
 from apps.users.models import User
 from apps.users.serializers import UserSerializer
 
@@ -7,6 +7,7 @@ class MembershipSerializer(serializers.ModelSerializer):
     class Meta:
         model = Membership
         fields = ['id', 'user_id', 'group_id', 'role']
+        read_only_fields = ['user_id', 'group_id', 'role']
 
 # Serializer for listing members within a group.
 class GroupMembersListSerializer(serializers.ModelSerializer):
@@ -22,3 +23,9 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = ['id', 'group_name', 'members']
+
+class InvitationSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = []
+        model = Invitation
+

@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
+from rest_framework.authtoken import views
 from django.conf.urls.static import static
 from config import settings
 
@@ -24,5 +25,6 @@ urlpatterns = [
     path('', include('apps.users.urls')),
     path('', include('apps.videos.urls')),
     path('', include('apps.groups.urls')),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+    path('auth/', views.obtain_auth_token)
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT + 'uploads') 
