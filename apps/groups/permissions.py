@@ -3,6 +3,8 @@ from apps.groups.models import Membership, Group, Invitation
 
 class IsOwner(BasePermission):
     def has_object_permission(self, request, view, obj):
+        if not request.user.is_authenticated:
+            return False
         try:
             membership = obj.membership_set.get(user_id=request.user, group_id=obj)
         except Membership.DoesNotExist:
@@ -11,6 +13,8 @@ class IsOwner(BasePermission):
 
 class IsMember(BasePermission):
     def has_object_permission(self, request, view, obj):
+        if not request.user.is_authenticated:
+            return False
         return obj.membership_set.filter(user_id=request.user, group_id=obj).exists()
 
 class IsInvited(BasePermission):
