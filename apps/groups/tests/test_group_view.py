@@ -5,8 +5,19 @@ from apps.users.models import User
 from apps.groups.serializers import GroupSerializer
 from django.urls import reverse
 
+'''
+This module provides tests for each available HTTP method on the Group model.
+
+Classes:
+    - GetAllGroupTest: Provides methods to test GET on group-list endpoint.
+    - GetSingleGroupTest: Prodives methods to test GET on group-detail endpoint.
+    - CreateGroupTest: Provides methods to test POST on group-list endpoint.
+    - UpdateGroupTest: Provides methods to test PUT/PATCH on group-detail endpoint.
+    - DeleteGroupTest: Provides methods to test DELETE on group-detail endpoint.
+'''
+
 class GetAllGroupsTest(APITestCase):
-    ''' Test module to GET all groups '''
+    ''' Tests GET all groups '''
 
     def setUp(self):
         Group.objects.create(group_name='Group 1')
@@ -40,8 +51,8 @@ class GetAllGroupsTest(APITestCase):
         self.assertEqual(response.data, serializer.data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-class SingleGroupTest(APITestCase):
-    ''' Test module to GET single groups '''
+class GetSingleGroupTest(APITestCase):
+    ''' Test GET single group '''
 
     def setUp(self):
         self.group = Group.objects.create(group_name='Group 1')
@@ -77,7 +88,7 @@ class SingleGroupTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 class CreateGroupTest(APITestCase):
-    ''' Test module to POST a new group '''
+    ''' Tests POST a new group '''
 
     def setUp(self):
         self.valid_payload = {
@@ -119,7 +130,7 @@ class CreateGroupTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 class UpdateGroupTest(APITestCase):
-    ''' Test module to PUT/PATCH a group '''
+    ''' Tests PUT/PATCH a group '''
 
     def setUp(self):
         self.group1 = Group.objects.create(
@@ -194,7 +205,7 @@ class UpdateGroupTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 class DeleteGroupTest(APITestCase):
-    ''' Test module to DELETE an existing group '''
+    ''' Tests DELETE an existing group '''
 
     def setUp(self):
         self.group1 = Group.objects.create(
