@@ -6,7 +6,7 @@ class TestHelper:
         self.user_count = 0
         self.group_count = 0
 
-    def create_user(self):
+    def create_user(self, isStaff=False):
         ''' 
         Creates a new user with a default username, password, and email.
         Username is "user" + the number of users created.
@@ -23,7 +23,8 @@ class TestHelper:
         return User.objects.create(
                 username=username,
                 password=password, 
-                email=email
+                email=email,
+                is_staff=isStaff
         )
 
     def create_group(self):

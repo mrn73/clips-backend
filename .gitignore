@@ -2,3 +2,6 @@ env
 .env
 db.sqlite3
 run.sh
+*.swp
+*.pyc
+__pycache__/

@@ -4,6 +4,7 @@ from apps.groups.models import Group, Membership
 from apps.users.models import User
 from apps.groups.serializers import GroupSerializer
 from django.urls import reverse
+from apps.groups.tests.helper import TestHelper
 
 '''
 This module provides tests for each available HTTP method on the Group model.
@@ -20,23 +21,15 @@ class GetAllGroupsTest(APITestCase):
     ''' Tests GET all groups '''
 
     def setUp(self):
-        Group.objects.create(group_name='Group 1')
-        Group.objects.create(group_name='Group 2')
-        Group.objects.create(group_name='Group 3')
-        Group.objects.create(group_name='Group 4')
+        helper = TestHelper()
+        
+        helper.create_group()
+        helper.create_group()
+        helper.create_group()
+        helper.create_group()
 
-        self.user = User.objects.create(
-                username='testuser',
-                password='password',
-                email='user@test.com'
-        )
-
-        self.admin = User.objects.create(
-                username='admin',
-                password='password',
-                email='admin@test.com',
-                is_staff=True
-        )
+        self.user = helper.create_user()
+        self.admin = helper.create_user(isStaff=True)
 
     def test_get_all_groups_unauthorized(self):
         self.client.force_authenticate(user=self.user)
@@ -55,18 +48,12 @@ class GetSingleGroupTest(APITestCase):
     ''' Test GET single group '''
 
     def setUp(self):
-        self.group = Group.objects.create(group_name='Group 1')
-        self.member = User.objects.create(
-                username='user1',
-                password='password',
-                email='user1@test.com'
-        )
-        self.nonmember = User.objects.create(
-                username='user2',
-                password='password',
-                email='user2@test.com'
-        )
-        Membership.objects.create(group_id=self.group, user_id=self.member)
+        helper = TestHelper()
+
+        self.member = helper.create_user()
+        self.nonmember = helper.create_user()
+        # automatically adds self.member to the group's membership
+        self.group = helper.create_group_by_user(self.member)
 
     def test_get_valid_group_as_member(self):
         self.client.force_authenticate(user=self.member)
@@ -91,17 +78,13 @@ class CreateGroupTest(APITestCase):
     ''' Tests POST a new group '''
 
     def setUp(self):
+        helper = TestHelper()
+
         self.valid_payload = {
                 'group_name': 'Group 1'
         }
-
         self.invalid_payload = {}
-
-        self.user = User.objects.create(
-                username='user',
-                password='password',
-                email='user@test.com'
-        )
+        self.user = helper.create_user()
 
     def test_create_valid_group_as_authenticated(self):
         self.client.force_authenticate(user=self.user)
@@ -133,33 +116,17 @@ class UpdateGroupTest(APITestCase):
     ''' Tests PUT/PATCH a group '''
 
     def setUp(self):
-        self.group1 = Group.objects.create(
-                group_name='Group 1'
-        )
+        helper = TestHelper()
 
-        self.user = User.objects.create(
-                username='user',
-                password='password',
-                email='user@test.com'
-        )
-        
-        self.user2 = User.objects.create(
-                username='user2',
-                password='password',
-                email='user2@test.com'
-        )
-
-        Membership.objects.create(
-                group_id=self.group1, 
-                user_id=self.user,
-                role=2
-        )
+        self.user = helper.create_user()
+        self.user2 = helper.create_user()
+        self.group1 = helper.create_group_by_user(self.user)
 
         self.valid_payload = {
                 'group_name': 'Changed Group 1'
         }
-
         self.invalid_payload = {}
+
         self.url = reverse('group-detail', args=[self.group1.id])
 
     def test_valid_update_valid_group_authorized(self):
@@ -208,27 +175,11 @@ class DeleteGroupTest(APITestCase):
     ''' Tests DELETE an existing group '''
 
     def setUp(self):
-        self.group1 = Group.objects.create(
-                group_name='Group 1'
-        )
+        helper = TestHelper()
 
-        self.user = User.objects.create(
-                username='user',
-                password='password',
-                email='user@test.com'
-        )
-        
-        self.user2 = User.objects.create(
-                username='user2',
-                password='password',
-                email='user2@test.com'
-        )
-
-        Membership.objects.create(
-                group_id=self.group1, 
-                user_id=self.user,
-                role=2
-        )
+        self.user = helper.create_user()
+        self.user2 = helper.create_user()
+        self.group1 = helper.create_group_by_user(self.user)
 
     def test_delete_valid_group_authorized(self):
         self.client.force_authenticate(user=self.user)
