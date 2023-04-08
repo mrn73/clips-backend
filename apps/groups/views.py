@@ -5,10 +5,11 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework import status, permissions, exceptions
 from apps.groups.models import Group, User, Membership, Invitation
 from apps.groups.serializers import GroupSerializer, MembershipSerializer, InvitationSerializer
-from apps.groups.permissions import IsOwner, IsMember, IsInvited
+from apps.groups.permissions import IsOwner, IsMember, IsInvited, CanInvite
 
-# Group CREATE, READ, UPDATE, DELETE view.
 class GroupViewSet(ModelViewSet):
+    ''' Group CREATE, READ, UPDATE, DELETE view. '''
+
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
 
@@ -16,7 +17,7 @@ class GroupViewSet(ModelViewSet):
     # associated with those memberships.
     def get_queryset(self):
         queryset = super().get_queryset()
-        return queryset.prefetch_related('membership_set__user_id')
+        return queryset.prefetch_related('membership_set__user')
  
     # All group actions must be by an authenticated user.
     # Deleting or updating a group is done by the owner.
@@ -35,27 +36,34 @@ class GroupViewSet(ModelViewSet):
     def perform_create(self, serializer):
         group = serializer.save()
         user = self.request.user
-        Membership.objects.create(user_id=user, group_id=group, role=2)
+        Membership.objects.create(user=user, group=group, role=2)
 
-# Membership CREATE view, where a user joins a group.
 class GroupJoinView(CreateAPIView):
+    ''' Membership CREATE view, where a user joins a group. '''
+
     serializer_class = MembershipSerializer
-    permission_classes = [permissions.IsAuthenticated, IsInvited]
-    
-    # Before joining a group, ensures the group exists and that the user
-    # is not already a member.
-    def perform_create(self, serializer): 
-        user = self.request.user
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
         try:
             group = Group.objects.get(id=self.kwargs['group_id'])
         except Group.DoesNotExist:
             raise exceptions.NotFound("Group does not exist")
-        if Membership.objects.filter(user_id=user, group_id=group).exists():
-            raise exceptions.ValidationError({"detail": "This user is already a member of this group"})
-        serializer.save(user_id=user, group_id=group)
 
-# Membership DESTROY view, where a user leaves a group.
+        user = self.request.user 
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if not Invitation.objects.filter(user_id=user, group_id=group).exists():
+            raise exceptions.PermissionDenied("You were not invited to this group.")
+
+        serializer.save(user=user, group=group) 
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
 class GroupLeaveView(DestroyAPIView):
+    ''' Membership DESTROY view, where a user leaves a group. '''
+
     queryset = Membership.objects.all()
     serializer_class = MembershipSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -63,13 +71,13 @@ class GroupLeaveView(DestroyAPIView):
     # Ensures that the user is a member of the group before leaving.
     def get_object(self):
         # Get the group ID in the URL
-        group = self.kwargs.get('group_id')
+        group_id = self.kwargs.get('group_id')
         # Get the current user
         user = self.request.user
         # Get the membership with the current user and group
         membership = None
         try:
-            membership = Membership.objects.get(group_id=group, user_id=user)
+            membership = Membership.objects.get(group=group_id, user=user)
         except Membership.DoesNotExist:
             raise exceptions.NotFound("Membership does not exist")
         return membership
@@ -78,25 +86,27 @@ class GroupLeaveView(DestroyAPIView):
     # If the owner leaves, the group is deleted along with all of its memberships.
     def perform_destroy(self, instance):
         if instance.role == 2:
-            instance.group_id.delete_with_memberships()
+            instance.group.delete_with_memberships()
         else:
             instance.delete()
 
 class GroupInviteView(CreateAPIView):
+    ''' Invitation CREATE view, where a user is invited to a group. '''
+
     serializer_class = InvitationSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOwner]
+    permission_classes = [permissions.IsAuthenticated, CanInvite]
     
-    def perform_create(self, serializer): 
-        if self.request.user.username == self.request.data.get('username', None):
-            raise exceptions.ValidationError({"detail": "You cannot invite yourself to a group."})
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['group'] = self.kwargs['group_id']
+        context['sender'] = self.request.user
+        return context
+
+    def create(self, request, *args, **kwargs):
+        # Preliminary check to ensure the group exists
         try:
             group = Group.objects.get(id=self.kwargs['group_id'])
         except Group.DoesNotExist:
             raise exceptions.NotFound("Group does not exist")
-        try:
-            user = User.objects.get(username=self.request.data.get('username', None))
-        except User.DoesNotExist:
-            raise exceptions.NotFound("User does not exist")
-        if Invitation.objects.filter(user_id=user, group_id=group).exists():
-            raise exceptions.ValidationError({"detail": "This user is already invited to this group."})
-        serializer.save(user_id=user, group_id=group)
+        # Proceed with creation as normal
+        return super().create(request, *args, **kwargs) 

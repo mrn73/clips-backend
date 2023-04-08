@@ -27,7 +27,7 @@ class IsInvited(BasePermission):
 
 class CanInvite(BasePermission):
     def has_permission(self, request, view):
-        group_id = view.kwargs.get('group_id')
+        group_id = view.kwargs.get('group_id', None)
         user = request.user
         try:
             membership = Membership.objects.get(user_id=user, group_id=group_id)
