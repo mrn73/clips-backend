@@ -4,12 +4,13 @@ from apps.groups.models import Group, Membership, Invitation
 from apps.users.models import User
 from apps.groups.serializers import GroupSerializer
 from django.urls import reverse
-from apps.groups.tests.helper import TestHelper
+from utils.test_helper import TestHelper
 '''
 This module provides tests for each available HTTP method on the Membership model.
 
 Classes:
-    -
+    - JoinGroupTest: Provides methods to test POST on group-join endpoint.
+    - LeaveGroupTest: Provides methods to test DELETE on group-leave endpoint.
 '''
 
 class JoinGroupTest(APITestCase):
@@ -43,6 +44,7 @@ class JoinGroupTest(APITestCase):
         response = self.client.post(
                 reverse('group-join', args=[self.group.id])
         )
+        # It would be forbidden since the invite can't exist.
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_join_invalid_group(self):
@@ -78,9 +80,9 @@ class LeaveGroupTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         
         # Logged in, existing member
-        self.client.force_authenticate(user=self.member)
+        self.client.force_authenticate(user=self.nonmember)
         response = self.client.delete(
                 reverse('group-leave', args=[self.group.id])
         )
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
