@@ -20,6 +20,9 @@ class VideoSerializer(serializers.ModelSerializer):
         model = Video
         fields = ['id', 'creator', 'creator_id', 'video_name', 'description', 'is_public', 'video', 'uploaded_at']
         read_only_fields = ['id', 'creator', 'uploaded_at']
+        extra_kwargs = {
+                'video': {'write_only': True}
+        }
 
     def validate_video(self, value):
         ''' 
