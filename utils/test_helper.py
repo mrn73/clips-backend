@@ -120,7 +120,7 @@ class TestHelper:
             size = max(0, size - len(sig))
         # Fill remainder of file with 0's
         buf.write(b'\x00' * size)
-        return SimpleUploadedFile(f'{name}.{mp4}', buf.getvalue())
+        return SimpleUploadedFile(f'{name}.{ext}', buf.getvalue())
 
     def create_mp4_file(self, size, name='test'): 
         '''
