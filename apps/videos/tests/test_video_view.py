@@ -93,7 +93,7 @@ class GetSingleVideoTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_get_public_video(self):
-        ''' Any (anonymous) user should be able to see a public video '''
+        ''' Any (including anonymous) user should be able to see a public video '''
         response = self.client.get(reverse('video-detail', args=[self.public_video.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
@@ -128,9 +128,10 @@ class CreateVideoTest(APITestCase):
                 'video': helper.create_file(100)
         }
 
+        # This file will be over the 1GB maximum
         self.large_video_payload = {
                 'video_name': 'test',
-                'video': helper.create_mp4_file(1024**3)
+                'video': helper.create_mp4_file(1024**3 + 1)
         }
 
     def test_create_video_as_authenticated(self):
@@ -179,7 +180,12 @@ class CreateVideoTest(APITestCase):
 
     def test_create_video_with_insufficient_space(self):
         ''' Should fail to upload the video size exceeds remaining space'''
-        pass
+        self.client.force_authenticate(user=self.user)
+        response = self.client.post(
+                reverse('video-list'),
+                self.large_video_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_create_video_too_large(self):
         ''' Should fail to upload any video larger than 1GB '''
@@ -200,33 +206,43 @@ class UpdateVideoTest(APITestCase):
         self.video = helper.upload_video(self.creator, is_public=False)
         self.noncreator = helper.create_user()
         self.video_file = helper.create_mp4_file(100)
+        self.admin = helper.create_user(is_staff=True)
 
     def test_creator_patch_video_name(self):
         ''' Should be allowed to change the name of your own video '''
         self.client.force_authenticate(user=self.creator)
+        new_name = 'changed'
         response = self.client.patch(
                 reverse('video-detail', args=[self.video.id]),
-                {'video_name': 'changed'}
+                {'video_name': new_name}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.video.refresh_from_db()
+        self.assertEqual(self.video.video_name, new_name)
     
     def test_creator_patch_video_description(self):
         ''' Should be allowed to change the description of your own video '''
         self.client.force_authenticate(user=self.creator)
+        new_desc = 'new description'
         response = self.client.patch(
                 reverse('video-detail', args=[self.video.id]),
-                {'description': 'new description'}
+                {'description': new_desc}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.video.refresh_from_db()
+        self.assertEqual(self.video.description, new_desc)
     
     def test_creator_patch_video_visibility(self):
         ''' Should be able to change if video is public/private on your own video '''
         self.client.force_authenticate(user=self.creator)
+        is_public = True
         response = self.client.patch(
                 reverse('video-detail', args=[self.video.id]),
-                {'is_public': True}
+                {'is_public': is_public}
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.video.refresh_from_db()
+        self.assertEqual(self.video.is_public, is_public)
 
     def test_creator_patch_video_file(self):
         ''' Should not be able to change the video file once uploaded '''
@@ -239,6 +255,12 @@ class UpdateVideoTest(APITestCase):
 
     def test_noncreator_patch_video(self):
         ''' Should not be able to edit someone else's video if you're not admin '''
+        response = self.client.patch(
+                reverse('video-detail', args=[self.video.id]),
+                {'video_name': 'changed'}
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
         self.client.force_authenticate(user=self.noncreator)
         response = self.client.patch(
                 reverse('video-detail', args=[self.video.id]),
@@ -246,14 +268,73 @@ class UpdateVideoTest(APITestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_admin_patch_video(self):
+        ''' Should be able to edit anyone's video '''
+        self.client.force_authenticate(user=self.admin)
+        new_name = 'changed'
+        response = self.client.patch(
+                reverse('video-detail', args=[self.video.id]),
+                {'video_name': new_name}
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.video.refresh_from_db()
+        self.assertEqual(self.video.video_name, new_name)
+
     def test_put_video(self):
         ''' PUT should be disabled on the view (as the video file cannot be resubmitted) '''
         self.client.force_authenticate(user=self.creator)
-        response = self.client.patch(
+        response = self.client.put(
                 reverse('video-detail', args=[self.video.id]),
                 {'video_name': 'changed'}
         )
-        self.assertEqual(response.status_code, status.HTTP_405_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
 
 class DeleteVideoTest(APITestCase):
-    pass
+    ''' Tests DELETE video instances ''' 
+
+    def setUp(self):
+        helper = TestHelper()
+
+        self.creator = helper.create_user()
+        self.video = helper.upload_video(self.creator, is_public=False)
+        self.noncreator = helper.create_user()
+        self.admin = helper.create_user(is_staff=True)
+
+    def test_creator_delete_video(self):
+        ''' Should be able to delete your own video '''
+        self.client.force_authenticate(user=self.creator)
+        response = self.client.delete(
+                reverse('video-detail', args=[self.video.id])
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_noncreator_delete_video(self):
+        ''' Should not be able to delete a video that is not yours '''
+        # Anonymous user
+        response = self.client.delete(
+                reverse('video-detail', args=[self.video.id])
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # Noncreator user
+        self.client.force_authenticate(user=self.noncreator)
+        response = self.client.delete(
+                reverse('video-detail', args=[self.video.id])
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_admin_delete_video(self):
+        ''' Should be able to delete anyone's video '''
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.delete(
+                reverse('video-detail', args=[self.video.id])
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_delete_nonexistent_video(self):
+        ''' Should return a 404 '''
+        self.client.force_authenticate(user=self.creator)
+        response = self.client.delete(
+                reverse('video-detail', args=[999])
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
