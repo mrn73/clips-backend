@@ -5,5 +5,5 @@ from apps.friendships.views import ListCreateFriendshipView, ListPendingFriendsh
 urlpatterns = [
         path('users/<int:user_id>/friends', ListCreateFriendshipView.as_view(), name='user-friends'),
         path('users/<int:user_id>/friends/pending', ListPendingFriendshipView.as_view(), name='user-friends-pending'),
-        path('friendships/<int:friendship_id>', FriendshipDetailView.as_view(), name='friendship-detail') 
+        path('friendships/<int:pk>', FriendshipDetailView.as_view(), name='friendship-detail') 
 ]

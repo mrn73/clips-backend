@@ -11,18 +11,16 @@ class CreateFriendshipSerializer(serializers.HyperlinkedModelSerializer):
     NOTE: should only be used when POSTING!
     '''
     sender = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    self = serializers.HyperlinkedIdentityField(
-        view_name='friendship-detail',
-        lookup_field='id'
-    )
     to = serializers.HyperlinkedRelatedField(
         queryset=User.objects.all(),
-        view_name='user-detail'
+        view_name='user-detail',
+        write_only=True
     )
  
     class Meta:
         model = Friendship
-        fields = ['self', 'sender', 'to']
+        fields = ['self', 'sender', 'to', 'user1', 'user2', 'status']
+        read_only_fields = ['user1', 'user2', 'status']
 
     def validate(self, data):
         if data['sender'] == data['to']:
@@ -37,10 +35,6 @@ class CreateFriendshipSerializer(serializers.HyperlinkedModelSerializer):
         return super().create(validated_data)
 
 class ListFriendshipSerializer(serializers.HyperlinkedModelSerializer):
-    self = serializers.HyperlinkedIdentityField(
-        view_name='friendship-detail',
-        lookup_field='id'
-    )
     friend = serializers.SerializerMethodField()
 
     class Meta:
