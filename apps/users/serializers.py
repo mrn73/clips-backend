@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from apps.users.models import User
 
-class UserSerializer(serializers.ModelSerializer): 
+class UserSerializer(serializers.HyperlinkedModelSerializer): 
     class Meta:
         model = User
-        fields = ['id', 'username', 'password', 'email', 'first_name', 'last_name']
+        fields = ['self', 'id', 'username', 'password', 'email', 'first_name', 'last_name']
         extra_kwargs = {
                 'password': {'write_only': True},
                 'email': {'write_only': True},

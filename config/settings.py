@@ -36,7 +36,8 @@ REST_FRAMEWORK = {
         'DEFAULT_AUTHENTICATION_CLASSES': [
             'rest_framework.authentication.TokenAuthentication',
             'rest_framework.authentication.SessionAuthentication'
-        ]
+        ],
+        'URL_FIELD_NAME': 'self'
 }
 
 INSTALLED_APPS = [
@@ -50,7 +51,8 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'apps.users',
     'apps.videos',
-    'apps.groups'
+    'apps.groups',
+    'apps.friendships'
 ]
 
 MIDDLEWARE = [
@@ -136,7 +138,11 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Custom user model
+
 AUTH_USER_MODEL = "users.User"
+
+# For retrieving videos in test
 
 MEDIA_ROOT = config("VIDEO_STORAGE")
 MEDIA_URL = "watch/"

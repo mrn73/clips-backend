@@ -23,6 +23,7 @@ class Membership(models.Model):
     the role of 'OWNER'.
     '''
     class Role(models.IntegerChoices):
+        ''' Possible roles for a group '''
         MEMBER = 1
         OWNER = 2
 
