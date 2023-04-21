@@ -21,6 +21,23 @@ class FriendshipManager(Manager):
         '''
         return self.filter(Q(user1=user) | Q(user2=user), status='accepted').select_related('user1', 'user2')
 
+    def pending_friendships_of_user(self, user):
+        '''
+        Retrieve all pending friendships (incoming/outgoing) for a given user.
+
+        Uses select_related to prefetch the users of this friendship in case the users' info is needed.
+
+        Args:
+            user (apps.users.models.User): The user for whom to retrieve pending friendship requests.
+
+        Returns:
+            QuerySet: A QuerySet containing the friendships that are pending for the given user.
+
+        Example:
+            pending = Friendship.objects.pending_friendships_of_user(user)
+        '''
+
+        return self.filter(Q(user1=user) | Q(user2=user), status='pending').select_related('user1', 'user2')
     def incoming_requests_for_user(self, user):
         '''
         Retrieve friendships that are incoming and pending for a given user.
@@ -54,3 +71,4 @@ class FriendshipManager(Manager):
             incoming_requests = Friendship.objects.incoming_requests_for_user(user)
         '''
         return self.filter(user1=user, status='pending').select_related('user1', 'user2')
+
