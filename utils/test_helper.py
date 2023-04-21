@@ -1,6 +1,7 @@
 from apps.groups.models import Group, Membership, Invitation
 from apps.users.models import User
 from apps.videos.models import Video
+from apps.friendships.models import Friendship
 from django.core.files.uploadedfile import SimpleUploadedFile
 import io
 import binascii
@@ -20,9 +21,10 @@ class TestHelper:
         
         Args:
             is_staff (bool, optional): Whether the user should be designated as staff. Defaults to False.
+            is_superuser (bool, optional): Whether the should be designated as superuser. Defaults to False.
 
         Returns:
-            apps.users.models.User: The created User object
+            apps.users.models.User: The created User object.
         '''
         self.user_count += 1
         username = "user" + str(self.user_count)
@@ -34,6 +36,39 @@ class TestHelper:
                 email=email,
                 is_staff=is_staff,
                 is_superuser=is_superuser
+        )
+
+    def make_friends(self, user1, user2):
+        '''
+        Make two users friends.
+
+        Args:
+            user1 (apps.users.models.User): A user in the friendship.
+            user2 (apps.users.models.User): A user in the friendship.
+
+        Returns:
+            apps.friendships.models.Friendship: The created friendship object.
+        '''
+        return Friendship.objects.create(
+                user1=user1,
+                user2=user2,
+                status=Friendship.Status.ACCEPTED
+        )
+
+    def send_friend_request(self, sender, receiver):
+        '''
+        Send a friend request from sender to receiver.
+
+        Args:
+            sender (apps.users.models.User): The user sending the request.
+            receiver (apps.users.models.User): The user receiving the request.
+
+        Returns:
+            apps.friendships.models.Friendship: The created friendship object that has status=pending.
+        '''
+        return Friendship.objects.create(
+                user1=sender,
+                user2=receiver
         )
 
     def create_group(self):
