@@ -8,7 +8,17 @@ from apps.friendships.permissions import FriendshipContainsUser, IsRequestedUser
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
-class ListCreateFriendshipView(ListCreateAPIView):
+'''
+Handles views for Friendships.
+
+friendship.status == 'accepted' --> user1 and user2 are friends
+friendship.status == 'pending' --> user1 sent a friend request to user2
+
+Naming convention notes:
+    'ListView' = collection/
+    'DetailView' = collection/<collection_item>/
+'''
+class FriendshipListView(ListCreateAPIView):
     ''' 
     List and create friendships.
 
