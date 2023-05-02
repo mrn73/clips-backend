@@ -51,8 +51,9 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'apps.users',
     'apps.videos',
-    'apps.groups',
-    'apps.friendships'
+    #'apps.groups',
+    'apps.friendships',
+    'apps.private_groups'
 ]
 
 MIDDLEWARE = [
@@ -63,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    #'custom_middleware.nested_url_middleware.ValidateParentResource'
 ]
 
 ROOT_URLCONF = 'config.urls'

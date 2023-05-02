@@ -24,8 +24,9 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apps.users.urls')),
     path('', include('apps.videos.urls')),
-    path('', include('apps.groups.urls')),
+    #path('', include('apps.groups.urls')),
     path('', include('apps.friendships.urls')),
+    path('', include('apps.private_groups.urls')),
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     path('auth/', views.obtain_auth_token)
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT + 'uploads') 
