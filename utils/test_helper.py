@@ -1,7 +1,8 @@
-from apps.groups.models import Group, Membership, Invitation
+#from apps.groups.models import Group, Membership, Invitation
 from apps.users.models import User
 from apps.videos.models import Video
 from apps.friendships.models import Friendship
+from apps.private_groups.models import PrivateGroup, PrivateGroupMembership
 from django.core.files.uploadedfile import SimpleUploadedFile
 import io
 import binascii
@@ -11,6 +12,7 @@ class TestHelper:
         self.user_count = 0
         self.group_count = 0
         self.video_count = 0
+        self.priv_group_count = 0
 
     def create_user(self, is_staff=False, is_superuser=False):
         ''' 
@@ -70,6 +72,41 @@ class TestHelper:
                 user1=sender,
                 user2=receiver
         )
+
+    def create_priv_group(self, creator, members=[]):
+        """
+        Creates a new private group with the given creator and members.
+
+        Args:
+            creator (apps.users.models.User): The user who is creating the group.
+            members (list of apps.users.models.User, optional): A list of users 
+                who are members of the group. Defaults to an empty list.
+
+        Returns:
+            apps.private_groups.models.PrivateGroup: The created PrivateGroup object.
+        """
+        self.priv_group_count += 1
+        group_name = "Private Group " + str(self.priv_group_count)
+        priv_group = PrivateGroup.objects.create(
+                group_name=group_name,
+                creator=creator
+        )
+        self.update_priv_group_members(priv_group, members)
+        return priv_group
+
+    def update_priv_group_members(self, priv_group, members):
+        """
+        Updates the members of the given private group.
+
+        Args:
+            priv_group (apps.private_groups.models.PrivateGroup): The private group to update.
+            members (list of apps.users.models.User): A list of users to add to the group.
+        """
+        for user in members:
+            PrivateGroupMembership.objects.create(
+                    user=user,
+                    group=priv_group
+            )
 
     def create_group(self):
         '''
