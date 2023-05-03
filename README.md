@@ -20,3 +20,5 @@ The design of this API is inspired by [HATEOAS](https://en.wikipedia.org/wiki/HA
 | api/private-groups/<group_id>/                 | Yes                      | GET, PUT, PATCH, DELETE         | {'group_name': str, 'members': list[User]}        | Complete     |
 | api/friendships/<friendship_id>/               | Yes                      | GET, PATCH, DELETE              | N/A                                               | Complete     |
 | api/feed/                                      | Yes                      | GET                             | N/A                                               | Incomplete   |
+
+\* = Revisit due to status code 403/404 discrepancy when the resource doesn't exist, but the user also doesn't have access. Need a consistent solution.
