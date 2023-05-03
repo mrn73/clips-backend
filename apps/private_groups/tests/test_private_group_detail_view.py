@@ -17,28 +17,30 @@ class GetSinglePrivateGroupTest(APITestCase):
     def setUp(self):
         helper = TestHelper()
 
-        self.user = helper.create_user()
+        self.creator = helper.create_user()
         self.members = [helper.create_user() for i in range(3)]
-        self.nonmember = helper.create_user()
+        self.noncreator = helper.create_user()
         self.admin = helper.create_user(is_staff=True)
         self.priv_group = helper.create_priv_group(
-                user,
+                self.creator,
                 self.members
         )
         self.url = 'private-group-detail'
 
     def test_get_private_group_as_creator(self):
         ''' Should be able to see the group details '''
-        self.client.force_authenticate(user=self.user)
+        self.client.force_authenticate(user=self.creator)
         response = self.client.get(reverse(self.url, args=[self.priv_group.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_get_private_group_as_noncreator(self):
         ''' Should not be able to see the private group '''
+        # Anonymous user
         response = self.client.get(reverse(self.url, args=[self.priv_group.id]))
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-        self.client.force_authenticate(user=self.nonmember)
+        # Noncreator user
+        self.client.force_authenticate(user=self.noncreator)
         response = self.client.get(reverse(self.url, args=[self.priv_group.id]))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
@@ -59,23 +61,28 @@ class UpdatePrivateGroupTest(APITestCase):
     def setUp(self):
         helper = TestHelper()
 
-        self.user = helper.create_user()
-        self.members = [helper.create_user() for i in range(3)]
+        self.creator = helper.create_user()
+        self.noncreator = helper.create_user()
         self.admin = helper.create_user(is_staff=True)
+        self.members = [helper.create_user() for i in range(3)]
+        self.member_urls = list(map(
+                lambda user: reverse('user-detail', args=[user.id]),
+                self.members
+        ))
         self.priv_group = helper.create_priv_group(
-                user,
+                self.creator,
                 self.members
         )
 
         # Remove 1 member from the group and change the name
         self.update_all_fields_payload = {
                 'group_name': 'CHANGED',
-                'members': self.members[:-1]
+                'members': self.member_urls[:-1]
         }
 
         # Remove 1 member from the group
         self.update_members_field_payload = {
-                'members': self.members[:-1]
+                'members': self.member_urls[:-1]
         }
 
         # Change the name
@@ -86,7 +93,8 @@ class UpdatePrivateGroupTest(APITestCase):
         self.url = 'private-group-detail'
 
     def test_put_private_group_as_creator(self):
-        self.client.force_authenticate(user=self.user)
+        ''' Should be able to update one's own private group '''
+        self.client.force_authenticate(user=self.creator)
         response = self.client.put(
                 reverse(self.url, args=[self.priv_group.id]),
                 self.update_all_fields_payload
@@ -95,31 +103,155 @@ class UpdatePrivateGroupTest(APITestCase):
 
         self.priv_group.refresh_from_db()
         self.assertEqual(
-                self.priv_group.group_name
+                self.priv_group.group_name,
                 self.update_all_fields_payload['group_name']
         )
         self.assertEqual(
-                self.priv_group.memberships.all()
+                list(map(
+                    lambda user_id: reverse('user-detail', args=[user_id]),
+                    self.priv_group.memberships.values_list('user', flat=True)
+                )),
                 self.update_all_fields_payload['members']
         )
 
     def test_put_private_group_as_noncreator(self):
-        pass
+        ''' Should not have permission to edit someone else's private group '''
+        # Anonymous user
+        response = self.client.put(
+                reverse(self.url, args=[self.priv_group.id]),
+                self.update_all_fields_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # Noncreator user
+        self.client.force_authenticate(user=self.noncreator)
+        response = self.client.put(
+                reverse(self.url, args=[self.priv_group.id]),
+                self.update_all_fields_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_put_private_group_as_admin(self):
-        pass
+        ''' Should be able to edit anyone's private group '''
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.put(
+                reverse(self.url, args=[self.priv_group.id]),
+                self.update_all_fields_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.priv_group.refresh_from_db()
+        self.assertEqual(
+                self.priv_group.group_name,
+                self.update_all_fields_payload['group_name']
+        )
+        self.assertEqual(
+                list(map(
+                    lambda user_id: reverse('user-detail', args=[user_id]),
+                    self.priv_group.memberships.values_list('user', flat=True)
+                )),
+                self.update_all_fields_payload['members']
+        )
 
     def test_patch_private_group_name(self):
-        pass
+        ''' Should be able to patch just the name as the creator '''
+        self.client.force_authenticate(user=self.creator)
+        response = self.client.patch(
+                reverse(self.url, args=[self.priv_group.id]),
+                self.update_name_field_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.priv_group.refresh_from_db()
+        self.assertEqual(
+                self.priv_group.group_name,
+                self.update_name_field_payload['group_name']
+        )
 
     def test_patch_private_group_members(self):
-        pass
+        ''' Should be able to patch just the members as the creator '''
+        self.client.force_authenticate(user=self.creator)
+        response = self.client.patch(
+                reverse(self.url, args=[self.priv_group.id]),
+                self.update_members_field_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        self.priv_group.refresh_from_db()
+        self.assertEqual(
+                list(map(
+                    lambda user_id: reverse('user-detail', args=[user_id]),
+                    self.priv_group.memberships.values_list('user', flat=True)
+                )),
+                self.update_all_fields_payload['members']
+        )
 
     def test_patch_private_group_as_noncreator(self):
-        pass
+        ''' Should not have permission to patch someone else's group '''
+        self.client.force_authenticate(user=self.noncreator)
+        response = self.client.patch(
+                reverse(self.url, args=[self.priv_group.id]),
+                self.update_members_field_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_update_private_group_nonexistent(self):
-        pass
+        ''' Can't patch a groupp that doesn't exist '''
+        self.client.force_authenticate(user=self.creator)
+        response = self.client.put(
+                reverse(self.url, args=[999]),
+                self.update_members_field_payload
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 class DeletePrivateGroupTest(APITestCase):
-    pass
+    ''' Tets DELETE a private group '''
+
+    def setUp(self):
+        helper = TestHelper()
+
+        self.creator = helper.create_user()
+        self.noncreator = helper.create_user()
+        self.admin = helper.create_user(is_staff=True)
+        self.priv_group = helper.create_priv_group(self.creator)
+        
+        self.url = 'private-group-detail'
+
+    def test_delete_private_group_as_creator(self):
+        ''' Should be able to delete your own private group '''
+        self.client.force_authenticate(user=self.creator)
+        response = self.client.delete(
+                reverse(self.url, args=[self.priv_group.id]),
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_delete_private_group_as_noncreator(self):
+        ''' Should not have permission to delete a group you don't own '''
+        # Anonymous user
+        response = self.client.delete(
+                reverse(self.url, args=[self.priv_group.id]),
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+        # Noncreator user
+        self.client.force_authenticate(user=self.noncreator)
+        response = self.client.delete(
+                reverse(self.url, args=[self.priv_group.id]),
+        )
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_delete_private_group_as_admin(self):
+        ''' Should be allowed to delete anyone's private group '''
+        self.client.force_authenticate(user=self.admin)
+        response = self.client.delete(
+                reverse(self.url, args=[self.priv_group.id]),
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_delete_private_group_nonexistent(self):
+        ''' Can't delete a private group that doesn't exist '''
+        self.client.force_authenticate(user=self.creator)
+        response = self.client.delete(
+                reverse(self.url, args=[999]),
+        )
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
