@@ -15,3 +15,7 @@ class Video(models.Model):
     )
     is_public = models.BooleanField(default=True)
     uploaded_at = models.DateTimeField(default=timezone.now)
+
+class Shared(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    video = models.ForeignKey(Video, on_delete=models.CASCADE)

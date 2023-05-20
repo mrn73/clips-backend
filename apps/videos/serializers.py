@@ -1,28 +1,40 @@
 from rest_framework import serializers
 from apps.videos.models import Video
 from apps.users.models import User
+from apps.users.serializers import UserSerializer
 from django.core.files.storage import FileSystemStorage
 from utils.defaults import CurrentUserIDDefault
 from datetime import datetime, timedelta
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 import magic
 
 MAX_FILE_SIZE = 1073741824 #1GB
 ALLOWED_TYPES = ['video/mp4'] #mp4 MIME
 
-class VideoSerializer(serializers.ModelSerializer):
+class VideoSerializer(serializers.HyperlinkedModelSerializer):
+    self = serializers.HyperlinkedIdentityField(
+            view_name='video-detail'
+    )
+
     # For deserialization only -- not readable/writable by end user
     creator_id = serializers.HiddenField(default=CurrentUserIDDefault())
     # For serialization only -- readable username
-    creator = serializers.StringRelatedField()
+    creator = serializers.SerializerMethodField()
 
     class Meta:
         model = Video
-        fields = ['id', 'creator', 'creator_id', 'video_name', 'description', 'is_public', 'video', 'uploaded_at']
+        fields = ['self', 'id', 'creator', 'creator_id', 'video_name', 'description', 'is_public', 'video', 'uploaded_at']
         read_only_fields = ['id', 'creator', 'uploaded_at']
         extra_kwargs = {
                 'video': {'write_only': True}
         }
+
+    def get_creator(self, obj):
+        return UserSerializer(
+                obj.creator, 
+                context={'request': self.context['request']}
+        ).data
 
     def validate_video(self, value):
         ''' 
