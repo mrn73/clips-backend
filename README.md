@@ -14,9 +14,8 @@ The design of this API is inspired by [HATEOAS](https://en.wikipedia.org/wiki/HA
 | api/users/<user_id>/friends/incoming-requests/ | Yes                      | GET                             | N/A                                               | Complete     |
 | api/users/<user_id>/friends/outgoing-requests/ | Yes                      | GET                             | N/A                                               | Complete     |
 | api/users/<user_id>/private-groups/            | Yes                      | GET, POST                       | {'group_name': str, 'members': list[User]}        | Complete (*) |
-| api/users/<user_id>/videos/                    | Yes                      | GET, POST                       | {'video_name': str, 'video': file}                | In Progress  |
-| api/videos/<video_id>/                         | Yes                      | GET, PATCH, DELETE              | {'video_name': str}                               | In Progress  |
-| api/videos/<video_id>/shared/                  | Yes                      | GET, POST                       | TBD                                               | Incomplete   |
+| api/users/<user_id>/videos/                    | Yes                      | GET, POST                       | {'video_name': str, 'video': file}                | Complete     |
+| api/videos/<video_id>/                         | Yes                      | GET, PATCH, DELETE              | {'video_name': str}                               | Complete     |
 | api/private-groups/<group_id>/                 | Yes                      | GET, PUT, PATCH, DELETE         | {'group_name': str, 'members': list[User]}        | Complete     |
 | api/friendships/<friendship_id>/               | Yes                      | GET, PATCH, DELETE              | N/A                                               | Complete     |
 | api/feed/                                      | Yes                      | GET                             | N/A                                               | Incomplete   |
