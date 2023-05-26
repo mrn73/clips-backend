@@ -1,4 +1,5 @@
 from rest_framework.permissions import BasePermission
+from apps.videos.models import Shared
 
 class IsCreator(BasePermission):
     ''' 
@@ -14,7 +15,10 @@ class IsShared(BasePermission):
     is shared with the user in the request.
     '''
     def has_object_permission(self, request, view, obj):
-        if obj.is_public:
+        if obj.is_public or (
+                request.user.is_authenticated and 
+                Shared.objects.filter(video=obj, user=request.user).exists()
+        ):
             return True
-        #TODO: making it here means video is private, so check the shared table
-        return True
+        return False
+        

@@ -13,9 +13,9 @@ class Video(models.Model):
                 FileExtensionValidator(allowed_extensions=['mp4'])
             ]
     )
-    is_public = models.BooleanField(default=True)
+    is_public = models.BooleanField(default=False)
     uploaded_at = models.DateTimeField(default=timezone.now)
 
 class Shared(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    video = models.ForeignKey(Video, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="shared_videos")
+    video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name="shared_with")
