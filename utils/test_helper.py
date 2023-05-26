@@ -1,6 +1,6 @@
 #from apps.groups.models import Group, Membership, Invitation
 from apps.users.models import User
-from apps.videos.models import Video
+from apps.videos.models import Video, Shared
 from apps.friendships.models import Friendship
 from apps.private_groups.models import PrivateGroup, PrivateGroupMembership
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -235,3 +235,18 @@ class TestHelper:
         )
         return video
 
+    def share_video_with_user(self, video, user):
+        '''
+        Shares a video with a user.
+
+        Args:
+            video (apps.videos.models.Video): The video being shared.
+            user (apps.users.models.User): The user being shared with.
+
+        Returns:
+            apps.videos.models.Shared: The shared object
+        '''
+        return Shared.objects.create(
+                user=user,
+                video=video
+        )
